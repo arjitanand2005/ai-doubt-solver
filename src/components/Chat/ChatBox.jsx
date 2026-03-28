@@ -9,12 +9,12 @@ import { FiSend, FiPaperclip, FiPlus, FiMenu, FiX, FiCopy, FiRefreshCw, FiSun, F
 import * as pdfjsLib from "pdfjs-dist";
 import { db } from "../../firebase";
 import { collection, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "firebase/firestore";
-
+ 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
-
+ 
 const subjects = ["All", "Maths", "Physics", "Chemistry", "Biology", "English", "Computer Science"];
-const BACKEND_URL = "const BACKEND_URL = "https://ai-doubt-solver-backend.onrender.com";
-
+const BACKEND_URL = "https://ai-doubt-solver-backend.onrender.com";
+ 
 export default function ChatBox({ user, onLogout }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -35,18 +35,18 @@ export default function ChatBox({ user, onLogout }) {
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
-
+ 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
+ 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
     }
   }, [input]);
-
+ 
   useEffect(() => {
     const loadHistory = async () => {
       setHistoryLoading(true);
@@ -67,7 +67,7 @@ export default function ChatBox({ user, onLogout }) {
     };
     loadHistory();
   }, [user.uid]);
-
+ 
   const saveChat = async (chatId, title, msgs) => {
     const chatData = { id: chatId, title, messages: msgs, subject, updatedAt: Date.now() };
     setChatHistory(prev => {
@@ -80,7 +80,7 @@ export default function ChatBox({ user, onLogout }) {
       await setDoc(doc(db, "users", user.uid, "chats", chatId), chatData);
     } catch (err) { console.warn("Firebase save failed:", err); }
   };
-
+ 
   const deleteChat = async (chatId, e) => {
     e.stopPropagation();
     setChatHistory(prev => {
@@ -91,7 +91,7 @@ export default function ChatBox({ user, onLogout }) {
     if (activeChatId === chatId) { setMessages([]); setActiveChatId(null); }
     try { await deleteDoc(doc(db, "users", user.uid, "chats", chatId)); } catch (err) {}
   };
-
+ 
   const loadChat = (chat) => {
     setMessages(chat.messages || []);
     setActiveChatId(chat.id);
@@ -99,7 +99,7 @@ export default function ChatBox({ user, onLogout }) {
     clearUpload();
     setInput("");
   };
-
+ 
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -110,7 +110,7 @@ export default function ChatBox({ user, onLogout }) {
       setShowUploadMenu(false);
     }
   };
-
+ 
   const handlePdf = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -134,32 +134,32 @@ export default function ChatBox({ user, onLogout }) {
       setPdfText("Could not read PDF. Please try another file.");
     }
   };
-
+ 
   const clearUpload = () => {
     setImagePreview(null);
     setPdfText(null);
     setPdfName(null);
     setUploadType(null);
   };
-
+ 
   const askDoubt = async (overrideInput) => {
     const q = overrideInput || input;
     if (!q.trim() && !imagePreview && !pdfText) return;
-
+ 
     const userMsg = { role: "user", text: q, image: imagePreview, pdfName };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput("");
     clearUpload();
     setLoading(true);
-
+ 
     const chatId = activeChatId || `chat_${Date.now()}`;
     if (!activeChatId) setActiveChatId(chatId);
     const chatTitle = q.slice(0, 45) || pdfName || "Image question";
-
+ 
     try {
       let messages_payload;
-
+ 
       if (imagePreview) {
         const base64 = await new Promise((resolve) => {
           const reader = new FileReader();
@@ -168,7 +168,7 @@ export default function ChatBox({ user, onLogout }) {
             .then(r => r.blob())
             .then(blob => reader.readAsDataURL(blob));
         });
-
+ 
         messages_payload = [
           {
             role: "system",
@@ -205,20 +205,19 @@ export default function ChatBox({ user, onLogout }) {
           }
         ];
       }
-
-      // ✅ NOW CALLING BACKEND INSTEAD OF GROQ DIRECTLY
+ 
       const endpoint = imagePreview ? `${BACKEND_URL}/api/ask-vision` : `${BACKEND_URL}/api/ask`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: messages_payload }),
       });
-
+ 
       const data = await response.json();
       const aiText = data.text;
       const msgId = Date.now();
       setMessages((prev) => [...prev, { role: "ai", text: "", fullText: aiText, id: msgId, typing: true }]);
-
+ 
       let i = 0;
       const interval = setInterval(() => {
         i++;
@@ -236,20 +235,20 @@ export default function ChatBox({ user, onLogout }) {
           });
         }
       }, 20);
-
+ 
     } catch (error) {
       console.log("ERROR:", error);
       setMessages((prev) => [...prev, { role: "ai", text: "Something went wrong. Please try again.", id: Date.now() }]);
     }
     setLoading(false);
   };
-
+ 
   const handleCopy = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
-
+ 
   const d = darkMode;
   const bg = d ? "#0f0f0f" : "#f7f8fc";
   const sidebar = d ? "#141414" : "#ffffff";
@@ -260,10 +259,10 @@ export default function ChatBox({ user, onLogout }) {
   const inputBg = d ? "#1e1e1e" : "#f3f4f6";
   const userBubble = "linear-gradient(135deg, #667eea, #764ba2)";
   const aiBubble = d ? "#1e1e1e" : "#ffffff";
-
+ 
   return (
     <div style={{ display: "flex", height: "100vh", background: bg, color: text, fontFamily: "'Inter', sans-serif", overflow: "hidden", transition: "all 0.3s" }}>
-
+ 
       {/* Sidebar */}
       <div style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, background: sidebar, borderRight: `1px solid ${border}`, display: "flex", flexDirection: "column", overflow: "hidden", transition: "all 0.3s ease" }}>
         <div style={{ padding: "16px", borderBottom: `1px solid ${border}` }}>
@@ -271,7 +270,7 @@ export default function ChatBox({ user, onLogout }) {
             <FiPlus size={16} /> New Chat
           </button>
         </div>
-
+ 
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${border}` }}>
           <div style={{ fontSize: 11, color: muted, marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Subjects</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -282,7 +281,7 @@ export default function ChatBox({ user, onLogout }) {
             ))}
           </div>
         </div>
-
+ 
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 8px" }}>
           <div style={{ fontSize: 11, color: muted, marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, padding: "0 8px" }}>Recent</div>
           {historyLoading ? (
@@ -303,7 +302,7 @@ export default function ChatBox({ user, onLogout }) {
             </div>
           ))}
         </div>
-
+ 
         <div style={{ padding: "12px 16px", borderTop: `1px solid ${border}`, display: "flex", alignItems: "center", gap: 10 }}>
           <img src={user.photoURL} alt="profile" style={{ width: 34, height: 34, borderRadius: "50%" }} />
           <div style={{ flex: 1, overflow: "hidden" }}>
@@ -315,7 +314,7 @@ export default function ChatBox({ user, onLogout }) {
           </button>
         </div>
       </div>
-
+ 
       {/* Main Chat Area */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 20px", borderBottom: `1px solid ${border}`, display: "flex", alignItems: "center", gap: 12, background: card }}>
@@ -330,7 +329,7 @@ export default function ChatBox({ user, onLogout }) {
             {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
           </button>
         </div>
-
+ 
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
           {messages.length === 0 && (
             <div style={{ textAlign: "center", marginTop: "15vh" }}>
@@ -349,7 +348,7 @@ export default function ChatBox({ user, onLogout }) {
               </div>
             </div>
           )}
-
+ 
           {messages.map((msg, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start", animation: "fadeIn 0.3s ease" }}>
               {msg.role === "user" ? (
@@ -402,7 +401,7 @@ export default function ChatBox({ user, onLogout }) {
               )}
             </div>
           ))}
-
+ 
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", display: "flex", alignItems: "center", justifyContent: "center" }}>🤖</div>
@@ -417,7 +416,7 @@ export default function ChatBox({ user, onLogout }) {
           )}
           <div ref={bottomRef} />
         </div>
-
+ 
         {/* Input Area */}
         <div style={{ padding: "16px 20px", borderTop: `1px solid ${border}`, background: card }}>
           {imagePreview && (
@@ -426,7 +425,7 @@ export default function ChatBox({ user, onLogout }) {
               <button onClick={clearUpload} style={{ position: "absolute", top: -8, right: -8, width: 22, height: 22, borderRadius: "50%", background: "#e74c3c", color: "white", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
           )}
-
+ 
           {pdfName && (
             <div style={{ marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 8, background: d ? "#2a2a2a" : "#f3f4f6", padding: "8px 12px", borderRadius: 10, border: `1px solid ${border}` }}>
               <FiFileText size={16} color="#667eea" />
@@ -435,7 +434,7 @@ export default function ChatBox({ user, onLogout }) {
               <button onClick={clearUpload} style={{ background: "none", border: "none", cursor: "pointer", color: muted, display: "flex", alignItems: "center" }}>✕</button>
             </div>
           )}
-
+ 
           <div style={{ position: "relative", display: "inline-block" }}>
             {showUploadMenu && (
               <div style={{ position: "absolute", bottom: "100%", left: 0, marginBottom: 8, background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 8, display: "flex", flexDirection: "column", gap: 4, zIndex: 100, minWidth: 160, boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
@@ -452,7 +451,7 @@ export default function ChatBox({ user, onLogout }) {
               </div>
             )}
           </div>
-
+ 
           <div style={{ display: "flex", alignItems: "flex-end", gap: 10, background: inputBg, borderRadius: 14, padding: "10px 14px", border: `1px solid ${border}` }}>
             <button onClick={() => setShowUploadMenu(!showUploadMenu)} style={{ cursor: "pointer", color: uploadType ? "#667eea" : muted, padding: "4px", display: "flex", alignItems: "center", background: "none", border: "none" }}>
               <FiPaperclip size={18} />
@@ -475,7 +474,7 @@ export default function ChatBox({ user, onLogout }) {
           <div style={{ textAlign: "center", fontSize: 11, color: muted, marginTop: 8 }}>Press Enter to send • Shift+Enter for new line • 📎 for image or PDF</div>
         </div>
       </div>
-
+ 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
