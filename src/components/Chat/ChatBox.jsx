@@ -13,7 +13,7 @@ import { collection, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "fir
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 const subjects = ["All", "Maths", "Physics", "Chemistry", "Biology", "English", "Computer Science"];
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = "const BACKEND_URL = "https://ai-doubt-solver-backend.onrender.com";
 
 export default function ChatBox({ user, onLogout }) {
   const [messages, setMessages] = useState([]);
