@@ -21,7 +21,9 @@ export default function ChatBox({ user, onLogout }) {
   const [subject, setSubject] = useState("All");
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Mobile: sidebar closed by default
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [imagePreview, setImagePreview] = useState(null);
   const [pdfText, setPdfText] = useState(null);
   const [pdfName, setPdfName] = useState(null);
@@ -35,6 +37,17 @@ export default function ChatBox({ user, onLogout }) {
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
+ 
+  // Track screen size
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
  
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -98,6 +111,8 @@ export default function ChatBox({ user, onLogout }) {
     setSubject(chat.subject || "All");
     clearUpload();
     setInput("");
+    // Close sidebar on mobile after selecting a chat
+    if (isMobile) setSidebarOpen(false);
   };
  
   const handleImage = (e) => {
@@ -263,10 +278,37 @@ export default function ChatBox({ user, onLogout }) {
   return (
     <div style={{ display: "flex", height: "100vh", background: bg, color: text, fontFamily: "'Inter', sans-serif", overflow: "hidden", transition: "all 0.3s" }}>
  
-      {/* Sidebar */}
-      <div style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, background: sidebar, borderRight: `1px solid ${border}`, display: "flex", flexDirection: "column", overflow: "hidden", transition: "all 0.3s ease" }}>
+      {/* Mobile overlay — tap to close sidebar */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 10 }} />
+      )}
+ 
+      {/* Sidebar — fixed overlay on mobile, normal on desktop */}
+      <div style={{
+        width: 260,
+        minWidth: 260,
+        background: sidebar,
+        borderRight: `1px solid ${border}`,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        transition: "all 0.3s ease",
+        // Mobile: slide in/out as overlay
+        ...(isMobile ? {
+          position: "fixed",
+          top: 0,
+          left: 0,
+          height: "100vh",
+          zIndex: 20,
+          transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+        } : {
+          // Desktop: normal flow, collapse by width
+          width: sidebarOpen ? 260 : 0,
+          minWidth: sidebarOpen ? 260 : 0,
+        })
+      }}>
         <div style={{ padding: "16px", borderBottom: `1px solid ${border}` }}>
-          <button onClick={() => { setMessages([]); setInput(""); clearUpload(); setActiveChatId(null); }} style={{ width: "100%", padding: "10px 14px", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
+          <button onClick={() => { setMessages([]); setInput(""); clearUpload(); setActiveChatId(null); if (isMobile) setSidebarOpen(false); }} style={{ width: "100%", padding: "10px 14px", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
             <FiPlus size={16} /> New Chat
           </button>
         </div>
@@ -316,30 +358,30 @@ export default function ChatBox({ user, onLogout }) {
       </div>
  
       {/* Main Chat Area */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${border}`, display: "flex", alignItems: "center", gap: 12, background: card }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", color: muted, padding: 4 }}>
-            {sidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        <div style={{ padding: isMobile ? "12px 14px" : "14px 20px", borderBottom: `1px solid ${border}`, display: "flex", alignItems: "center", gap: 12, background: card }}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", color: muted, padding: 4, flexShrink: 0 }}>
+            {sidebarOpen && !isMobile ? <FiX size={20} /> : <FiMenu size={20} />}
           </button>
-          <div style={{ flex: 1 }}>
-            <span style={{ fontWeight: 700, fontSize: 16, background: "linear-gradient(135deg, #667eea, #764ba2)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>🎓 AI Doubt Solver</span>
-            <span style={{ marginLeft: 10, fontSize: 12, color: muted, background: d ? "#2a2a2a" : "#f3f4f6", padding: "2px 8px", borderRadius: 20 }}>{subject}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontWeight: 700, fontSize: isMobile ? 14 : 16, background: "linear-gradient(135deg, #667eea, #764ba2)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>🎓 AI Doubt Solver</span>
+            <span style={{ marginLeft: 8, fontSize: 11, color: muted, background: d ? "#2a2a2a" : "#f3f4f6", padding: "2px 8px", borderRadius: 20 }}>{subject}</span>
           </div>
-          <button onClick={() => setDarkMode(!darkMode)} style={{ background: "none", border: "none", cursor: "pointer", color: muted, padding: 4 }}>
+          <button onClick={() => setDarkMode(!darkMode)} style={{ background: "none", border: "none", cursor: "pointer", color: muted, padding: 4, flexShrink: 0 }}>
             {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
           </button>
         </div>
  
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 12px" : "24px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: "center", marginTop: "15vh" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🎓</div>
-              <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, background: "linear-gradient(135deg, #667eea, #764ba2)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI Doubt Solver</div>
-              <div style={{ color: muted, fontSize: 15, marginBottom: 8 }}>Ask any question and get step-by-step explanations</div>
-              <div style={{ color: muted, fontSize: 13, marginBottom: 24 }}>📷 Upload an image or 📄 PDF of your question!</div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <div style={{ textAlign: "center", marginTop: isMobile ? "8vh" : "15vh", padding: "0 12px" }}>
+              <div style={{ fontSize: isMobile ? 36 : 48, marginBottom: 12 }}>🎓</div>
+              <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, marginBottom: 8, background: "linear-gradient(135deg, #667eea, #764ba2)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI Doubt Solver</div>
+              <div style={{ color: muted, fontSize: isMobile ? 13 : 15, marginBottom: 8 }}>Ask any question and get step-by-step explanations</div>
+              <div style={{ color: muted, fontSize: 12, marginBottom: 20 }}>📷 Upload an image or 📄 PDF of your question!</div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", padding: "0 8px" }}>
                 {["What is integration?", "Explain Newton's 3rd law", "How does DNA replication work?"].map(q => (
-                  <button key={q} onClick={() => askDoubt(q)} style={{ padding: "10px 16px", borderRadius: 20, border: `1px solid ${border}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}
+                  <button key={q} onClick={() => askDoubt(q)} style={{ padding: "8px 14px", borderRadius: 20, border: `1px solid ${border}`, background: "transparent", color: muted, fontSize: isMobile ? 12 : 13, cursor: "pointer", transition: "all 0.2s" }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = "#667eea"; e.currentTarget.style.color = "#667eea"; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.color = muted; }}>
                     {q}
@@ -352,22 +394,22 @@ export default function ChatBox({ user, onLogout }) {
           {messages.map((msg, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start", animation: "fadeIn 0.3s ease" }}>
               {msg.role === "user" ? (
-                <div style={{ maxWidth: "70%", padding: "12px 18px", borderRadius: "18px 18px 4px 18px", background: userBubble, color: "white", fontSize: 15, lineHeight: 1.6 }}>
+                <div style={{ maxWidth: isMobile ? "88%" : "70%", padding: "10px 14px", borderRadius: "18px 18px 4px 18px", background: userBubble, color: "white", fontSize: isMobile ? 14 : 15, lineHeight: 1.6 }}>
                   {msg.image && <img src={msg.image} alt="uploaded" style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 8 }} />}
                   {msg.pdfName && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.2)", padding: "6px 10px", borderRadius: 8, marginBottom: 8, fontSize: 13 }}>
-                      <FiFileText size={14} /> {msg.pdfName}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.2)", padding: "6px 10px", borderRadius: 8, marginBottom: 8, fontSize: 12 }}>
+                      <FiFileText size={13} /> {msg.pdfName}
                     </div>
                   )}
                   {msg.text}
                 </div>
               ) : (
-                <div style={{ maxWidth: "80%", width: "100%" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🤖</div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: text }}>AI Tutor</span>
+                <div style={{ maxWidth: isMobile ? "95%" : "80%", width: "100%" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🤖</div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: text }}>AI Tutor</span>
                   </div>
-                  <div style={{ padding: "16px 20px", borderRadius: "4px 18px 18px 18px", background: aiBubble, border: `1px solid ${border}`, fontSize: 15, lineHeight: 1.8, color: text }}>
+                  <div style={{ padding: isMobile ? "12px 14px" : "16px 20px", borderRadius: "4px 18px 18px 18px", background: aiBubble, border: `1px solid ${border}`, fontSize: isMobile ? 14 : 15, lineHeight: 1.8, color: text, overflowX: "auto" }}>
                     <ReactMarkdown
                       remarkPlugins={[remarkMath]}
                       rehypePlugins={[rehypeKatex]}
@@ -389,7 +431,7 @@ export default function ChatBox({ user, onLogout }) {
                       {msg.text}
                     </ReactMarkdown>
                   </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                     <button onClick={() => handleCopy(msg.text, msg.id)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: `1px solid ${border}`, background: "transparent", color: muted, fontSize: 12, cursor: "pointer" }}>
                       <FiCopy size={12} /> {copiedId === msg.id ? "Copied!" : "Copy"}
                     </button>
@@ -404,7 +446,7 @@ export default function ChatBox({ user, onLogout }) {
  
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", display: "flex", alignItems: "center", justifyContent: "center" }}>🤖</div>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", display: "flex", alignItems: "center", justifyContent: "center" }}>🤖</div>
               <div style={{ padding: "12px 18px", borderRadius: "4px 18px 18px 18px", background: aiBubble, border: `1px solid ${border}` }}>
                 <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                   {[0, 1, 2].map(i => (
@@ -418,20 +460,20 @@ export default function ChatBox({ user, onLogout }) {
         </div>
  
         {/* Input Area */}
-        <div style={{ padding: "16px 20px", borderTop: `1px solid ${border}`, background: card }}>
+        <div style={{ padding: isMobile ? "10px 12px" : "16px 20px", borderTop: `1px solid ${border}`, background: card }}>
           {imagePreview && (
-            <div style={{ marginBottom: 10, position: "relative", display: "inline-block" }}>
-              <img src={imagePreview} alt="preview" style={{ maxHeight: 100, borderRadius: 10, border: `2px solid ${border}` }} />
+            <div style={{ marginBottom: 8, position: "relative", display: "inline-block" }}>
+              <img src={imagePreview} alt="preview" style={{ maxHeight: 80, borderRadius: 10, border: `2px solid ${border}` }} />
               <button onClick={clearUpload} style={{ position: "absolute", top: -8, right: -8, width: 22, height: 22, borderRadius: "50%", background: "#e74c3c", color: "white", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
           )}
  
           {pdfName && (
-            <div style={{ marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 8, background: d ? "#2a2a2a" : "#f3f4f6", padding: "8px 12px", borderRadius: 10, border: `1px solid ${border}` }}>
-              <FiFileText size={16} color="#667eea" />
-              <span style={{ fontSize: 13, color: text, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfName}</span>
-              {pdfText ? <span style={{ fontSize: 11, color: "#4caf50" }}>✓ Ready</span> : <span style={{ fontSize: 11, color: muted }}>Reading...</span>}
-              <button onClick={clearUpload} style={{ background: "none", border: "none", cursor: "pointer", color: muted, display: "flex", alignItems: "center" }}>✕</button>
+            <div style={{ marginBottom: 8, display: "inline-flex", alignItems: "center", gap: 8, background: d ? "#2a2a2a" : "#f3f4f6", padding: "6px 10px", borderRadius: 10, border: `1px solid ${border}`, maxWidth: "100%" }}>
+              <FiFileText size={14} color="#667eea" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: text, maxWidth: isMobile ? 120 : 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfName}</span>
+              {pdfText ? <span style={{ fontSize: 11, color: "#4caf50", flexShrink: 0 }}>✓</span> : <span style={{ fontSize: 11, color: muted }}>...</span>}
+              <button onClick={clearUpload} style={{ background: "none", border: "none", cursor: "pointer", color: muted, display: "flex", alignItems: "center", flexShrink: 0 }}>✕</button>
             </div>
           )}
  
@@ -452,8 +494,8 @@ export default function ChatBox({ user, onLogout }) {
             )}
           </div>
  
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 10, background: inputBg, borderRadius: 14, padding: "10px 14px", border: `1px solid ${border}` }}>
-            <button onClick={() => setShowUploadMenu(!showUploadMenu)} style={{ cursor: "pointer", color: uploadType ? "#667eea" : muted, padding: "4px", display: "flex", alignItems: "center", background: "none", border: "none" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, background: inputBg, borderRadius: 14, padding: isMobile ? "8px 10px" : "10px 14px", border: `1px solid ${border}` }}>
+            <button onClick={() => setShowUploadMenu(!showUploadMenu)} style={{ cursor: "pointer", color: uploadType ? "#667eea" : muted, padding: "4px", display: "flex", alignItems: "center", background: "none", border: "none", flexShrink: 0 }}>
               <FiPaperclip size={18} />
             </button>
             <input ref={imageInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImage} />
@@ -461,17 +503,18 @@ export default function ChatBox({ user, onLogout }) {
             <textarea
               ref={textareaRef}
               rows={1}
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: text, fontSize: 15, resize: "none", lineHeight: 1.6, maxHeight: 160, fontFamily: "inherit" }}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: text, fontSize: isMobile ? 14 : 15, resize: "none", lineHeight: 1.6, maxHeight: 120, fontFamily: "inherit", minWidth: 0 }}
               placeholder={pdfName ? `Ask about ${pdfName}...` : `Ask a ${subject} question...`}
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askDoubt(); setShowUploadMenu(false); } }}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !isMobile) { e.preventDefault(); askDoubt(); setShowUploadMenu(false); } }}
             />
-            <button onClick={() => { askDoubt(); setShowUploadMenu(false); }} disabled={loading || (!input.trim() && !imagePreview && !pdfText)} style={{ padding: "8px 16px", borderRadius: 10, background: (input.trim() || imagePreview || pdfText) ? "linear-gradient(135deg, #667eea, #764ba2)" : border, color: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, transition: "all 0.2s" }}>
-              <FiSend size={16} /> Ask
+            <button onClick={() => { askDoubt(); setShowUploadMenu(false); }} disabled={loading || (!input.trim() && !imagePreview && !pdfText)} style={{ padding: isMobile ? "8px 12px" : "8px 16px", borderRadius: 10, background: (input.trim() || imagePreview || pdfText) ? "linear-gradient(135deg, #667eea, #764ba2)" : border, color: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: isMobile ? 0 : 6, fontSize: 14, fontWeight: 600, transition: "all 0.2s", flexShrink: 0 }}>
+              <FiSend size={16} />
+              {!isMobile && " Ask"}
             </button>
           </div>
-          <div style={{ textAlign: "center", fontSize: 11, color: muted, marginTop: 8 }}>Press Enter to send • Shift+Enter for new line • 📎 for image or PDF</div>
+          {!isMobile && <div style={{ textAlign: "center", fontSize: 11, color: muted, marginTop: 8 }}>Press Enter to send • Shift+Enter for new line • 📎 for image or PDF</div>}
         </div>
       </div>
  
