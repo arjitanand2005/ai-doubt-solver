@@ -31,6 +31,7 @@ export default function ChatBox({ user, onLogout }) {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   const bottomRef = useRef(null);
+  const chatAreaRef = useRef(null);
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -46,8 +47,13 @@ export default function ChatBox({ user, onLogout }) {
   }, []);
 
   useEffect(() => {
+  const chatArea = chatAreaRef.current;
+  if (!chatArea) return;
+  const isAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 100;
+  if (isAtBottom) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }
+}, [messages, loading]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -350,7 +356,7 @@ export default function ChatBox({ user, onLogout }) {
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 12px" : "24px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div ref={chatAreaRef} style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 12px" : "24px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
           {messages.length === 0 && (
             <div style={{ textAlign: "center", marginTop: isMobile ? "8vh" : "15vh", padding: "0 12px" }}>
               <div style={{ fontSize: isMobile ? 36 : 48, marginBottom: 12 }}>🎓</div>
