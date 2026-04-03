@@ -227,7 +227,7 @@ export default function ChatBox({ user, onLogout }) {
       });
 
       const data = await response.json();
-      const aiText = data.text;
+      const aiText = data.text || data.error || "Something went wrong. Please try again.";
       const msgId = Date.now();
 
       // ✅ Smooth word-by-word reveal (professional, not annoying)
